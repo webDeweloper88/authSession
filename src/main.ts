@@ -46,8 +46,19 @@ async function bootstrap() {
       .setDescription('API documentation for NestJS application') // Swagger hujjatlari uchun tavsif
       .setVersion('1.0') // Swagger hujjatlari uchun versiya
       .addTag('nestjs') // Swagger hujjatlari uchun teg
-      .addBearerAuth() // Bearer autentifikatsiya qo‘shish
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'Authorization',
+          description: 'Введите access token',
+          in: 'header',
+        },
+        'JWT-auth', // <-- Название схемы
+      )
       .build(); // Swagger konfiguratsiyasini yaratish
+
     const document = SwaggerModule.createDocument(app, configSwager);
     SwaggerModule.setup('api', app, document); // Swagger hujjatlarini '/api' yo‘nalishida sozlash
 

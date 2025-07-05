@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { IS_DEV_ENV } from './common/utils/is-dev.utils';
 import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
+import { JwtModule } from './jwt/jwt.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserModule } from './user/user.module';
     }),
     PrismaModule,
     UserModule,
+    JwtModule,
   ],
   controllers: [],
   providers: [],

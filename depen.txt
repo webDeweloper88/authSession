@@ -13,7 +13,22 @@ npx prisma init
 Открой файл prisma/schema.prisma и замени его содержимое на ту схему, которую я тебе дал выше (с User, Session, AccessLog, OAuthAccount и enum'ами).
 Шаг 4. Сгенерируй клиент и создай миграцию
 npx prisma migrate dev --name init
+npx prisma migrate dev --name change_id_to_uuid
  Шаг 5. Подключи Prisma в NestJS
  //npm install @nestjs/prisma
  Создай файл prisma.service.ts:
  
+
+ #JWT module
+npm install --save @nestjs/jwt
+#JWT Strategies
+npm install --save @nestjs/passport passport passport-jwt
+npm install --save-dev @types/passport-jwt
+#dlya heshirovaniya
+npm install bcrypt
+npm install --save-dev @types/bcrypt
+
+#TwoFactorAuthService 
+npm install speakeasy qrcode
+npm install --save-dev @types/qrcode
+npm install --save-dev @types/speakeasy
