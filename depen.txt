@@ -2,3 +2,18 @@
 npm install --save @nestjs/config
 npm i --save class-validator class-transformer
 npm install --save @nestjs/swagger swagger-ui-express
+
+#prisma
+Шаг 1. Установить Prisma и необходимые пакеты
+npm install prisma --save-dev
+npm install @prisma/client
+Шаг 2. Инициализация Prisma
+npx prisma init
+ Шаг 3. Вставь схему (schema.prisma)
+Открой файл prisma/schema.prisma и замени его содержимое на ту схему, которую я тебе дал выше (с User, Session, AccessLog, OAuthAccount и enum'ами).
+Шаг 4. Сгенерируй клиент и создай миграцию
+npx prisma migrate dev --name init
+ Шаг 5. Подключи Prisma в NestJS
+ //npm install @nestjs/prisma
+ Создай файл prisma.service.ts:
+ 
