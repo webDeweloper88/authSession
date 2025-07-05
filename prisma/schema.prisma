@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id          String  @id @default(cuid())
+  id          String  @id @default(uuid()) @map("user_id")
   email       String  @unique
   displayName String? @map("display_name")
   picktureUrl String? @map("picture_url")
@@ -38,7 +38,7 @@ model User {
 }
 
 model Session {
-  id        String  @id @default(cuid())
+  id        String  @id @default(uuid()) @map("session_id")
   userId    String  @map("user_id")
   ipAddress String  @unique @map("ip_address")
   userAgent String? @map("user_agent")
@@ -53,7 +53,7 @@ model Session {
 }
 
 model AccessLog {
-  id        String       @id @default(cuid())
+  id        String       @id @default(uuid()) @map("access_log_id")
   userId    String       @map("user_id")
   eventType LogEventType @map("event_type")
   ipAddress String?      @map("ip_address")
@@ -66,7 +66,7 @@ model AccessLog {
 }
 
 model OAuthAccount {
-  id           String  @id @default(cuid())
+  id           String  @id @default(uuid()) @map("oauth_account_id")
   provider     String  // 'google', 'github', и т.д.
   providerId   String  // ID пользователя в системе провайдера
   email        String? // email, полученный от OAuth
