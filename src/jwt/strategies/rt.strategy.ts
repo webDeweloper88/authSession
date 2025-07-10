@@ -37,6 +37,7 @@ export class RtStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
       // request.user sifatida mavjud bo'ladi
       ...payload, // payloadni qo'shish
       refreshToken, // refresh tokenni qo'shish
+      sessionId: payload.sessionId,
     };
   }
 }

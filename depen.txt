@@ -17,6 +17,9 @@ npx prisma migrate dev --name change_id_to_uuid
  Шаг 5. Подключи Prisma в NestJS
  //npm install @nestjs/prisma
  Создай файл prisma.service.ts:
+
+ npm i prettier-plugin-prisma
+ 
  
 
  #JWT module
@@ -32,3 +35,27 @@ npm install --save-dev @types/bcrypt
 npm install speakeasy qrcode
 npm install --save-dev @types/qrcode
 npm install --save-dev @types/speakeasy
+
+#mail
+npm install nodemailer
+npm install --save-dev @types/nodemailer
+npm install handlebars
+
+# redis
+npm install ioredis
+
+
+#dlya logina 
+npm i cookie-parser
+npm i -D @types/cookie-parser
+
+npm install ms    
+npm i -D @types/ms
+
+#session 
+npm install dayjs
+npm install --save-dev @types/dayjs
+npm i ua-parser-js
+
+udaleniya prosrochennix sesiya sherez @cron 
+npm install @nestjs/schedule

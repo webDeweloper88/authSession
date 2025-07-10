@@ -4,7 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AccountStatus, Prisma, User, UserRole } from '@prisma/client';
+import {
+  AccountStatus,
+  LogEventType,
+  Prisma,
+  User,
+  UserRole,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserProfileDto } from './dto/user-profile.dto';
 import { USER_ERRORS } from 'src/common/constants/errors';
@@ -16,10 +22,16 @@ import * as bcrypt from 'bcrypt';
 import { UserSessionDto } from './dto/user-session.dto';
 import { AccessLogDto } from './dto/access-log.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import e from 'express';
+import { RequestMetaData } from 'src/access-log/types/request-meta.type';
+import { AccessLogService } from 'src/access-log/access-log.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly accessLogService: AccessLogService,
+  ) {}
 
   async getProfile(userId: string): Promise<UserProfileDto> {
     const user = await this.prismaService.user.findUnique({
@@ -73,7 +85,11 @@ export class UserService {
     };
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto) {
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    meta: RequestMetaData,
+  ) {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
     });
@@ -94,180 +110,13 @@ export class UserService {
       where: { id: userId },
       data: { hash: newHash },
     });
+    await this.accessLogService.logEvent(
+      userId,
+      LogEventType.PASSWORD_CHANGED,
+      meta,
+    );
 
     return { message: 'Пароль успешно изменен' };
-  }
-
-  async createUserByAdmin(dto: CreateUserByAdminDto) {
-    const existing = await this.prismaService.user.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (existing) {
-      throw new ConflictException(USER_ERRORS.ALREADY_EXISTS);
-    }
-
-    const hash = await bcrypt.hash(dto.hash, 10);
-
-    const user = await this.prismaService.user.create({
-      data: {
-        email: dto.email,
-        hash,
-        displayName: dto.displayName,
-        picktureUrl: dto.pictureUrl,
-        role: dto.role ?? UserRole.user,
-        accountStatus: dto.accountStatus ?? AccountStatus.ACTIVE,
-        emailVerified: true, // Так как админ создаёт вручную
-      },
-    });
-
-    return {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      role: user.role,
-      accountStatus: user.accountStatus,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-  }
-
-  async findById(id: string): Promise<UserProfileDto> {
-    const user = await this.prismaService.user.findUnique({ where: { id } });
-
-    if (!user) {
-      throw new NotFoundException(USER_ERRORS.NOT_FOUND);
-    }
-
-    return {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName ?? '',
-      pictureUrl: user.picktureUrl ?? '',
-      role: user.role,
-      accountStatus: user.accountStatus,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-  }
-  async findAll(dto: FilterUsersDto) {
-    const { role, status, email, page = 1, limit = 10 } = dto;
-
-    const where = {
-      ...(role && { role }),
-      ...(status && { accountStatus: status }),
-      ...(email && {
-        email: {
-          contains: email,
-          mode: Prisma.QueryMode.insensitive,
-        },
-      }),
-    };
-
-    const [data, total] = await Promise.all([
-      this.prismaService.user.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prismaService.user.count({ where }),
-    ]);
-
-    return {
-      total,
-      page,
-      limit,
-      data: data.map((user) => ({
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName ?? '',
-        pictureUrl: user.picktureUrl ?? '',
-        role: user.role,
-        accountStatus: user.accountStatus,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      })),
-    };
-  }
-
-  async updateByAdmin(userId: string, dto: UpdateUserAdminDto) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException(USER_ERRORS.NOT_FOUND);
-    }
-
-    return this.prismaService.user.update({
-      where: { id: userId },
-      data: {
-        ...(dto.role && { role: dto.role }),
-        ...(dto.accountStatus && { accountStatus: dto.accountStatus }),
-      },
-    });
-  }
-
-  async deleteByAdmin(userId: string) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new NotFoundException(USER_ERRORS.NOT_FOUND);
-    }
-
-    return this.prismaService.user.update({
-      where: { id: userId },
-      data: { accountStatus: AccountStatus.DELETED },
-    });
-  }
-
-  async getUserSessions(userId: string): Promise<UserSessionDto[]> {
-    const sessions = await this.prismaService.session.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return sessions.map((session) => ({
-      id: session.id,
-      ipAddress: session.ipAddress,
-      userAgent: session.userAgent ?? '',
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-      expiresAt: session.expiresAt,
-    }));
-  }
-
-  async deleteSessionByUser(userId: string, sessionId: string) {
-    const session = await this.prismaService.session.findUnique({
-      where: { id: sessionId },
-    });
-
-    if (!session || session.userId !== userId) {
-      throw new NotFoundException('Сессия не найдена или недоступна');
-    }
-
-    return this.prismaService.session.delete({
-      where: { id: sessionId },
-    });
-  }
-
-  async deleteSessionByAdmin(userId: string, sessionId: string) {
-    const session = await this.prismaService.session.findUnique({
-      where: { id: sessionId },
-    });
-
-    if (!session || session.userId !== userId) {
-      throw new NotFoundException(
-        'Сессия не найдена или не принадлежит пользователю',
-      );
-    }
-
-    return this.prismaService.session.delete({
-      where: { id: sessionId },
-    });
   }
 
   async getMyAccessLogs(userId: string): Promise<AccessLogDto[]> {
@@ -343,6 +192,35 @@ export class UserService {
       where: { id: userId },
     });
   }
+  async createUserInternal(data: {
+    email: string;
+    hash: string;
+    displayName?: string;
+    emailVerified: boolean;
+    emailVerificationToken: string;
+    emailVerificationTokenExpiresAt?: Date;
+    accountStatus: AccountStatus;
+  }): Promise<User> {
+    const existing = await this.prismaService.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existing) {
+      throw new ConflictException(USER_ERRORS.ALREADY_EXISTS);
+    }
+
+    return this.prismaService.user.create({
+      data: {
+        email: data.email,
+        hash: data.hash,
+        displayName: data.displayName ?? '',
+        emailVerified: data.emailVerified,
+        emailVerificationToken: data.emailVerificationToken,
+        emailVerificationTokenExpiresAt: data.emailVerificationTokenExpiresAt, // <-- добавлено
+        accountStatus: data.accountStatus,
+      },
+    });
+  }
 
   /**
    * Найти пользователя по email
@@ -372,6 +250,7 @@ export class UserService {
       data: {
         emailVerified: true,
         emailVerificationToken: null,
+        emailVerificationTokenExpiresAt: null,
         accountStatus: AccountStatus.ACTIVE,
       },
     });
@@ -383,11 +262,13 @@ export class UserService {
   async setEmailVerificationToken(
     userId: string,
     token: string,
+    expiresAt: Date, // предполагается, что expiresAt передаётся в метод
   ): Promise<void> {
     await this.prismaService.user.update({
       where: { id: userId },
       data: {
         emailVerificationToken: token,
+        emailVerificationTokenExpiresAt: expiresAt, // предполагается, что expiresAt передаётся в метод
       },
     });
   }
@@ -397,7 +278,19 @@ export class UserService {
    */
   async findByEmailVerificationToken(token: string): Promise<User | null> {
     return this.prismaService.user.findFirst({
-      where: { emailVerificationToken: token },
+      where: {
+        emailVerificationToken: token,
+        emailVerificationTokenExpiresAt: {
+          gte: new Date(), // токен должен быть ещё действителен
+        },
+      },
+    });
+  }
+
+  async updateRefreshToken(userId: string, hashedRt: string): Promise<void> {
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: { hashRt: hashedRt },
     });
   }
 }

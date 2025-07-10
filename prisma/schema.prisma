@@ -17,22 +17,23 @@ model User {
   hashRt String?  @map("refresh_token")
   role   UserRole @default(user) @map("user_role")
 
-  accountStatus          AccountStatus @default(PENDING) @map("account_status")
-  emailVerified          Boolean       @default(false) @map("email_verified")
-  emailVerificationToken String?       @map("email_verification_token")
-  resetPasswordToken     String?       @map("reset_password_token")
-  resetPasswordExpiresAt DateTime?     @map("reset_password_expires_at")
+  accountStatus                   AccountStatus @default(PENDING) @map("account_status")
+  emailVerified                   Boolean       @default(false) @map("email_verified")
+  emailVerificationToken          String?       @map("email_verification_token")
+  emailVerificationTokenExpiresAt DateTime?     @map("email_verification_token_expires_at")
+  resetPasswordToken              String?       @map("reset_password_token")
+  resetPasswordExpiresAt          DateTime?     @map("reset_password_expires_at")
 
-  twoFactorEnabled  Boolean   @default(false) @map("two_factor_enabled")
-  twoFactorSecret   String?   @map("two_factor_secret")
+  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret    String?   @map("two_factor_secret")
   twoFactorExpiresAt DateTime? @map("two_factor_expires_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  accessLogs     AccessLog[]     @relation(name: "UserAccessLogs")
-  Session        Session[]
-  OAuthAccount   OAuthAccount[]
+  accessLogs   AccessLog[]    @relation(name: "UserAccessLogs")
+  Session      Session[]
+  OAuthAccount OAuthAccount[]
 
   @@map("users") // Имя таблицы
 }
@@ -40,8 +41,12 @@ model User {
 model Session {
   id        String  @id @default(uuid()) @map("session_id")
   userId    String  @map("user_id")
-  ipAddress String  @unique @map("ip_address")
+  ipAddress String  @map("ip_address")
   userAgent String? @map("user_agent")
+
+  device   String? @map("device") // Например: "Windows 10 · Chrome 138"
+  client   String? @map("client") // Например: "web", "mobile", "desktop"
+  location String? @map("location") // Например: "Tashkent, Uzbekistan"
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -67,8 +72,8 @@ model AccessLog {
 
 model OAuthAccount {
   id           String  @id @default(uuid()) @map("oauth_account_id")
-  provider     String  // 'google', 'github', и т.д.
-  providerId   String  // ID пользователя в системе провайдера
+  provider     String // 'google', 'github', и т.д.
+  providerId   String // ID пользователя в системе провайдера
   email        String? // email, полученный от OAuth
   accessToken  String?
   refreshToken String?
@@ -89,17 +94,24 @@ enum UserRole {
 }
 
 enum AccountStatus {
-  PENDING     // пользователь не подтвердил email
-  ACTIVE      // подтверждён и активен
-  SUSPENDED   // временно заблокирован
-  DELETED     // удалён (не имеет доступа)
+  PENDING // пользователь не подтвердил email
+  ACTIVE // подтверждён и активен
+  BLOCKED // временно заблокирован
+  DELETED // удалён (не имеет доступа)
 }
 
 enum LogEventType {
+  REGISTER
   LOGIN_SUCCESS
   LOGIN_FAIL
+  EMAIL_VERIFIED
+  EMAIL_RESEND
+  EMAIL_FAILED
+  PASSWORD_CHANGED
+  ACCOUNT_BLOCKED
+  ACCOUNT_UNLOCKED
+  LOGIN_2FA_REQUIRED
+  ENABLE_2FA
+  DISABLE_2FA
   LOGOUT
-  PASSWORD_RESET
-  PASSWORD_RESET_FAIL
-  EMAIL_VERIFICATION
 }

@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-
+import * as cookieParser from 'cookie-parser';
 /**
  * NestJS ilovasini ishga tushirish uchun bootstrap funksiyasi.
  *
@@ -41,11 +41,12 @@ async function bootstrap() {
       credentials: true,
     });
 
+    app.use(cookieParser());
+
     const configSwager = new DocumentBuilder()
       .setTitle('NestJS API') // Swagger hujjatlari uchun sarlavha
       .setDescription('API documentation for NestJS application') // Swagger hujjatlari uchun tavsif
       .setVersion('1.0') // Swagger hujjatlari uchun versiya
-      .addTag('nestjs') // Swagger hujjatlari uchun teg
       .addBearerAuth(
         {
           type: 'http',

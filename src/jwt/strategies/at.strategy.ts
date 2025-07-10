@@ -17,6 +17,6 @@ export class AtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   validate(payload: JwtPayload) {
     // JWT tokeni muvaffaqiyatli tekshirilganda chaqiriladi
-    return payload; // request.user sifatida mavjud bo'ladi
+    return payload;
   }
 }
